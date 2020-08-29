@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>图层点线面的绘制</title>
+ <link rel="stylesheet" href="https://js.arcgis.com/4.16/esri/themes/light/main.css" />
+ <script src="https://js.arcgis.com/4.16/"></script>
+ <style>
+  html,body{
+   height: 100%;
+   margin: 0;
+  }
+  #view-div{
+   position: absolute;
+   height: 100%;
+   width: 100%;
+   left: 0;
+   top: 0;
+  }
+ </style>
+</head>
+<body>
+<div id="view-div">
+
+</div>
+</body>
+<script>
+ window.onload = function () {
+  require(['esri/Map','esri/views/MapView','esri/widgets/Sketch','esri/layers/GraphicsLayer'], function (Map, MapView, Sketch, GraphicsLayer) {
+    let map = new Map({
+     basemap:'osm'
+    })
+   let mapView = new MapView({
+    container:'view-div',
+    map:map,
+    zoom:4,
+    center:[-15,65]
+   })
+   let graphicsLayer = new GraphicsLayer()
+   let sketch = new Sketch({
+    layer: graphicsLayer,
+    view:mapView,
+    // creationMode:'update'
+   })
+   map.add(graphicsLayer)
+   mapView.ui.add(sketch,'top-right')
+  })
+ }
+</script>
+</html>

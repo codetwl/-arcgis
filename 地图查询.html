@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>地图查询</title>
+ <link rel="stylesheet" href="https://js.arcgis.com/4.16/esri/themes/light/main.css" />
+ <script src="https://js.arcgis.com/4.16/"></script>
+ <style>
+  html,body{
+   height: 100%;
+   margin: 0;
+  }
+  #map-view{
+   position: absolute;
+   height: 100%;
+   width: 100%;
+   left: 0;
+   top: 0;
+  }
+ </style>
+</head>
+<body>
+ <div id="map-view">
+
+ </div>
+</body>
+<script>
+ window.onload = function () {
+   require(['esri/Map','esri/views/MapView',"esri/tasks/QueryTask", "esri/tasks/support/Query"], function (Map, MapView, QueryTask, Query) {
+     let citiesLayerUrl = " ... ";
+     let map = new Map()
+     let mapView = new MapView({
+      map:map,
+      container:"map-view"
+     })
+     let quaryTask= new QueryTask({
+      url:citiesLayerUrl
+     })
+    let query = new Query()
+    query.returnGeometry = true
+    query.outFields = ["*"];
+    query.where = "POP &gt; 1000000";
+   })
+ }
+</script>
+</html>

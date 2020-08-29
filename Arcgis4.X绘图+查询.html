@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+        <title>Arcgis4.X绘图+查询</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.16/esri/themes/light/main.css" />
+        <script type="text/javascript" src="http://js.arcgis.com/4.11/init.js"></script>
+        <script src="https://js.arcgis.com/4.11/"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<!--    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>-->
+
+        <style>
+            html,body,#viewDiv
+            {
+                top: 0;
+                left: 0;
+                margin: 0;
+                height: 900px;
+                width: 2000px;
+            }
+            #optionsDiv {
+                background-color: rgba(105, 105, 105, 0.5);
+                color: white;
+                padding: 10px;
+                width: 260px;
+                opacity: 50%;
+                display: none;
+            }
+        </style>
+</head>
+
+<body>
+    <div id="viewDiv">
+        <div id="line-button" class="esri-widget esri-widget--button esri-interactive" title="画线">
+            <span class="esri-icon-polyline"></span>
+        </div>
+        <div id="area-button" class="esri-widget esri-widget--button esri-interactive" title="画面">
+            <span class="esri-icon-polygon"></span>
+        </div>
+        <div id="point-button" class="esri-widget esri-widget--button esri-interactive" title="画点">
+            <span class="esri-icon-radio-checked"></span>
+        </div>
+        <div id="circle-button" class="esri-widget esri-widget--button esri-interactive" title="画圆">
+            <span class="esri-icon-radio-unchecked"></span>
+        </div>
+        <div id="rectangle-button" class="esri-widget esri-widget--button esri-interactive" title="画矩形">
+            <span class="esri-icon-checkbox-unchecked"></span>
+        </div>
+        <div id="search-button" class="esri-widget esri-widget--button esri-interactive" title="查询">
+             <span class="esri-icon-search"></span>
+        </div>
+        <div id="clear-button" class="esri-widget esri-widget--button esri-interactive" title="清除">
+            <span class="esri-icon-close"></span>
+        </div>
+        <div id="print-button" class="esri-widget esri-widget--button esri-interactive" title="打印">
+            <span class="esri-icon-link-external"></span>
+        </div>
+
+
+        <div class="esri-widget" id="optionsDiv">
+            <h5>输入关键词查询</h5>
+            <input type="text" id="inputTxt" size="25" value="" />
+            <button class="esri-widget" id="doBtn">查找</button>
+            <br>
+            <p><span id="printResults"></span></p>
+        </div>
+    </div>
+
+
+
+    <script>
+    require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/TileLayer", //切片服务
+        "esri/layers/GraphicsLayer", //画图
+        "esri/layers/FeatureLayer", //
+        "esri/views/draw/Draw", //画图
+        "esri/Graphic", //画图
+        "esri/geometry/Polyline",
+        "esri/geometry/Polygon",
+        "esri/geometry/Point",
+        "esri/geometry/Circle",
+        "esri/geometry/geometryEngine",
+        "esri/widgets/Print",
+        "esri/tasks/QueryTask",
+        "esri/tasks/support/Query",
+        "dojo/_base/array",
+        "dojo/dom",
+        "dojo/domReady!",
+    ], function (
+        Map, MapView,TileLayer,
+        GraphicsLayer,FeatureLayer,
+        Draw, Graphic,
+        Polyline, Polygon, Point, Circle, geometryEngine,
+        Print,
+        QueryTask, Query, arrayUtils, dom,
+    ) {
+        var serverUrl = "http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer/0";
+
+        var tileLayer01=new TileLayer({
+            url:"http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer",
+            opacity:1
+        });
+
+        var gralayer = new GraphicsLayer();//绘图、查询高亮显示图层
+
+        var map = new Map({
+            //basemap: "osm"
+            layers:[tileLayer01]
+        });
+
+        map.add(gralayer);
+
+        var fieldInfos = [{
+            fieldName: "SHAPE_Area",
+            label: "SHAPE_Area",
+            format: {
+                places: 0,
+                digitSeperator: true
+            }
+        }, {
+            fieldName: "OBJECTID",
+            label: "OBJECTID",
+            format: {
+                places: 0,
+                digitSeperator: true
+            }
+        }, {
+            fieldName: "SHAPE_Length",
+            label: "SHAPE_Length",
+            format: {
+                places: 0,
+                digitSeperator: true
+            }
+        }];
+
+        var featurelayer = new FeatureLayer({
+            url: "http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer/0",
+            outFields: ["OBJECTID", "SHAPE", "名称",
+                "SHAPE_Length", "SHAPE_Area"
+            ],
+            title: "ShangHai",
+            popupTemplate: { // autocasts as new PopupTemplate()
+                title: "区域名称： {名称}",
+                content: [{
+                    type: "text",
+                    text:  "<br><b>ID:</b> {OBJECTID}" +
+                        "<br><b>区域面积:</b> {SHAPE_Area}"+
+                        "<br><b>区域周长:</b> {SHAPE_Length}"
+                }, {
+                    type: "fields",
+                    fieldInfos: fieldInfos
+                }],
+                fieldInfos: [{
+                    fieldName: "OBJECTID",
+                    label: "OBJECTID",
+                    format: {
+                        digitSeparator: true,
+                        places: 0
+                    }
+                }]
+
+            }
+        });
+//            图层的不透明度。
+        featurelayer.opacity = 0;
+        //关键字查询、提示框图层
+        map.add(featurelayer);
+
+        //二维视图
+        var view = new MapView({
+            map: map,
+            container: "viewDiv",
+            logo: false,
+            zoom: 2,
+
+        });
+
+        //查询模板
+        var popupTemplate = { // autocasts as new PopupTemplate()
+            title: "{名称}",
+            fieldInfos: [{
+                fieldName: "SHAPE_Area",
+                label: "SHAPE_Area",
+                format: {
+                    places: 0,
+                    digitSeperator: true
+                }
+            }, {
+                fieldName: "OBJECTID",
+                label: "OBJECTID",
+                format: {
+                    places: 0,
+                    digitSeperator: true
+                }
+            }, {
+                fieldName: "SHAPE_Length",
+                label: "SHAPE_Length",
+                format: {
+                    places: 0,
+                    digitSeperator: true
+                }
+            }],
+            // content:
+            //     "<br><b>OBJECTID:</b> {OBJECTID}" +
+            //     "<br><b>SHAPE_Area:</b> {SHAPE_Area}"+
+            //     "<br><b>SHAPE_Length:</b> {SHAPE_Length}"
+        };
+
+        /*
+        //添加图层标注
+        let image = {
+            type: 'picture-marker',
+            url: 'http://localhost:65022/images/电子地图图标/炼化（故障）.png',
+            width: '32px',
+            height: '32px',
+        };
+
+        //设置点的位置
+        let position = {
+            type: 'point',
+            longitude: 98.01,
+            latitude: 33.80,
+        };
+        //将点的样式和位置放在Graphic里面
+        let Graphic1 = new Graphic({
+            geometry: position,
+            symbol: image,
+        });
+        //显示图标
+        view.graphics.add(Graphic1);
+        */
+
+        /*
+        //添加工具(点面线等)
+        var highlight;
+        view.on("click", function (event) {
+            if (highlight) {
+                highlight.remove();
+            }
+            view.hitTest(event).then(function (response) {
+                if (response.results[0]) {
+                    var graphic = response.results[0].graphic;
+                    console.log(graphic);
+                    view.whenLayerView(graphic.layer).then(function (lyrView) {
+                        highlight = lyrView.highlight(graphic);
+                    })
+                }
+            })
+        });
+        */
+
+        view.ui.add("line-button", "top-left");//添加绘制线按钮，自定义UI
+        view.ui.add("area-button", "top-left");//添加绘制面按钮，自定义UI
+        view.ui.add("point-button", "top-left");//添加绘制面按钮，自定义UI
+        view.ui.add("circle-button", "top-left");//添加绘制面按钮，自定义UI
+        view.ui.add("rectangle-button", "top-left");//添加绘制面按钮，自定义UI
+        view.ui.add("search-button", "top-left");//添加绘制面按钮，自定义UI
+        view.ui.add("clear-button", "top-left");//添加绘制面按钮，自定义UI
+        view.ui.add("print-button", "top-left");//添加绘制面按钮，自定义UI
+        // view.ui.remove("attribution");//移除底部ESRI logo
+        view.ui.add("optionsDiv", "top-right");//添加查询按钮，自定义UI
+
+        view.when(function () {
+            var draw = new Draw({
+                view: view
+            });
+            //绑定线按钮绘制事件
+            var drawLineButton = document.getElementById("line-button");
+            drawLineButton.onclick = function () {
+                view.graphics.removeAll();//清楚之前的绘制
+                enableCreateLine(draw, view);
+            };
+            //绑定面按钮绘制事件
+            var drawAreaButton = document.getElementById("area-button");
+            drawAreaButton.onclick = function () {
+                view.graphics.removeAll();//清楚之前的绘制
+                enableCreateArea(draw, view);
+            };
+            //绑定面按钮绘制事件
+            var drawPointButton = document.getElementById("point-button");
+            drawPointButton.onclick = function () {
+                enableCreatePoint(draw, view);
+            };
+            //绑定面按钮绘制事件
+            var drawCircleButton = document.getElementById("circle-button");
+            drawCircleButton.onclick = function () {
+                enableCreateCircle(draw, view);
+            };
+            //绑定面按钮绘制事件
+            var drawRectangleButton = document.getElementById("rectangle-button");
+            drawRectangleButton.onclick = function () {
+                enableCreateRectangle(draw, view);
+            };
+            //绑定清除按钮绘制事件
+            var clearButton = document.getElementById("clear-button");
+            clearButton.onclick = function () {
+                view.graphics.removeAll();//清楚之前的绘制
+                gralayer.removeAll();
+                featurelayer.removeAll();
+            };
+
+
+            var print = new Print({
+                view: view,
+                // specify your own print service
+                printServiceUrl:
+                    "http://139.196.105.31:6080/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
+            });
+
+            // Add widget to the top right corner of the view
+            view.ui.add(print, "bottom-right");
+
+
+        });
+        //开始监听画线
+        function enableCreateLine(draw, view) {
+            var action = draw.create("polyline", {
+                mode: "click"
+            });
+            // 获取焦点
+            view.focus();
+
+            // 顶点添加事件
+            action.on("vertex-add", createPolyline);
+
+
+            //顶点移除事件
+            action.on("vertex-remove", createPolyline);
+
+
+            // 鼠标移动事件
+            action.on("cursor-update", createPolyline);
+
+
+            // 绘制完成事件
+            action.on("draw-complete", createPolyline);
+        }
+        //开始监听画面
+        function enableCreateArea(draw, view) {
+            var action = draw.create("polygon", {
+                mode: "click"//点击方式加点
+            });
+            // 获取焦点
+            view.focus();
+
+            // 顶点添加事件
+            action.on("vertex-add", createPolygon);
+
+
+            //顶点移除事件
+            action.on("vertex-remove", createPolygon);
+
+
+            // 鼠标移动事件
+            action.on("cursor-update", createPolygon);
+
+
+            // 绘制完成事件
+            action.on("draw-complete", createPolygon);
+
+
+        }
+        //开始监听画点
+        function enableCreatePoint(draw, view) {
+            var action = draw.create("point", {
+                mode: "click"//点击方式加点
+            });
+            // 获取焦点
+            view.focus();
+
+            // 顶点添加事件
+            action.on("vertex-add", createPoint);
+
+
+            //顶点移除事件
+            action.on("vertex-remove", createPoint);
+
+
+            // 绘制完成事件
+            action.on("draw-complete", createPoint);
+
+
+        }
+        //开始监听画圆
+        function enableCreateCircle(draw, view) {
+            var action = draw.create("circle", {
+                //mode: "click"//点击方式加点
+                mode: "freehand" //拖曳方式绘图
+            });
+            // 获取焦点
+            view.focus();
+
+            // 顶点添加事件
+            action.on("vertex-add", createCircle);
+            //顶点移除事件
+            action.on("vertex-remove", createCircle);
+            // 鼠标移动事件
+            action.on("cursor-update", createCircle);
+            // 绘制完成事件
+            action.on("draw-complete", createCircle);
+        }
+        //开始监听画矩形
+        function enableCreateRectangle(draw, view) {
+            var action = draw.create("rectangle", {
+                //mode: "click"//点击方式加点
+                mode: "freehand" //拖曳方式绘图
+            });
+            // 获取焦点
+            view.focus();
+
+            //顶点移除事件
+            action.on("vertex-remove", createRectangle);
+            // 鼠标移动事件
+            action.on("cursor-update", createRectangle);
+            // 绘制完成事件
+            action.on("draw-complete", createRectangle);
+
+        }
+
+        //根据点坐标生成新的线
+        function createPolyline(event) {
+            //获取所有顶点
+            var vertices = event.vertices;
+            //清除之前绘制
+            view.graphics.removeAll();
+            var line = new Polyline({
+                paths: vertices,
+                spatialReference: view.spatialReference
+            });
+            // 生成绘制的图形
+            var graphic = new Graphic({
+                geometry: line,
+                symbol: {
+                    type: "simple-line", // autocasts as new SimpleFillSymbol
+                    color: [4, 90, 141,0.35],
+                    width: 4,
+                    cap: "round",
+                    join: "round"
+                }
+            });
+            // 将绘制的图形添加到view
+            view.graphics.add(graphic);
+            if (event.type == "draw-complete") {
+                createBuffer(line);
+            }
+        }
+        //根据点坐标生成新的线
+        function createPolygon(event) {
+            //获取所有顶点
+            var vertices = event.vertices;
+            //清除之前绘制
+            view.graphics.removeAll();
+            var polygon = new Polygon({
+                hasZ: false,
+                hasM: false,
+                rings: [vertices],
+                spatialReference: view.spatialReference
+            });
+            // 生成绘制的图形
+            var graphic = new Graphic({
+                geometry: polygon,
+                symbol: {
+                    type: "simple-fill",  // autocasts as new SimpleFillSymbol()
+                    color: [51, 51, 204, 0.35],
+                    style: "solid",
+                    outline: {  // autocasts as new SimpleLineSymbol()
+                        color: "#00f2f1",
+                        width: 1
+                    }
+                }
+            });
+            // 将绘制的图形添加到view
+            view.graphics.add(graphic);
+            if (event.type == "draw-complete") {
+                createBuffer(polygon);
+            }
+        }
+
+        //根据点坐标生成新的线
+        function createPoint(event) {
+            //获取所有顶点
+            var coordinates = event.coordinates;
+            var point = new Point({
+                hasZ: false,
+                hasM: false,
+                x: coordinates[0],
+                y: coordinates[1],
+                spatialReference: view.spatialReference
+            });
+            //生成绘制的图形
+            var graphic = new Graphic({
+                geometry: point,
+                symbol: {
+                    type: "simple-marker",  // autocasts as new SimpleMarkerSymbol()
+                    style: "square",
+                    color: "blue",
+                    size: "8px",  // pixels
+                    outline: {  // autocasts as new SimpleLineSymbol()
+                        color: [255, 255, 0],
+                        width: 3  // points
+                    }
+                }
+            });
+            // 将绘制的图形添加到view
+            view.graphics.add(graphic);
+            if (event.type == "draw-complete") {
+                createBuffer(point);
+            }
+        }
+        //根据点坐标生成新的线
+        function createCircle(event) {
+            //获取所有顶点
+            var vertices = event.vertices;
+            //少于一个点无法展示圆
+            if (vertices.length < 2) {
+                return
+            }
+            //清除之前绘制
+            view.graphics.removeAll();
+            //生成绘制的图形,两点画圆
+            var center = new Point({
+                hasZ: false,
+                hasM: false,
+                x: vertices[0][0],
+                y: vertices[0][1],
+                spatialReference: view.spatialReference
+            });
+            var dis = center.distance(new Point({
+                hasZ: false,
+                hasM: false,
+                x: vertices[1][0],
+                y: vertices[1][1],
+                spatialReference: view.spatialReference
+            }));
+            var circle = new Circle({
+                hasZ: false,
+                hasM: false,
+                center: center,
+                radius: dis,
+                spatialReference: view.spatialReference
+            });
+            var graphic = new Graphic({
+                geometry: circle,
+                symbol: {
+                    type: "simple-fill",  // autocasts as new SimpleFillSymbol()
+                    color: [51, 51, 204, 0.35],
+                    style: "solid",
+                    outline: {  // autocasts as new SimpleLineSymbol()
+                        color: "white",
+                        width: 1
+                    }
+                }
+            });
+            // 将绘制的图形添加到view
+            view.graphics.add(graphic);
+            if (event.type == "draw-complete") {
+                createBuffer(circle)
+            }
+        }
+        function createRectangle(event) {
+            //获取所有顶点
+            var vertices = event.vertices;
+
+            //两点画矩形
+            if (vertices.length < 2) {
+                return
+            }
+            var rings = [vertices[0], [vertices[0][0], vertices[1][1]], vertices[1], [vertices[1][0], vertices[0][1]]];
+            //清除之前绘制
+            view.graphics.removeAll();
+            var polygon = new Polygon({
+                hasZ: false,
+                hasM: false,
+                rings: [rings],
+                spatialReference: view.spatialReference
+            });
+            // 生成绘制的图形
+            var graphic = new Graphic({
+                geometry: polygon,
+                symbol: {
+                    type: "simple-fill",  // autocasts as new SimpleFillSymbol()
+                    color: [51, 51, 204, 0.35],
+                    style: "solid",
+                    outline: {  // autocasts as new SimpleLineSymbol()
+                        color: "white",
+                        width: 1
+                    }
+                }
+            });
+            // 将绘制的图形添加到view
+            view.graphics.add(graphic);
+            if (event.type == "draw-complete") {
+                createBuffer(polygon);
+            }
+            console.log(event);
+
+
+        }
+
+        /**
+                          * 根据geometry生成缓冲区
+                          * @param geometry 生成的geometry
+                          */
+        function createBuffer(geometry) {
+            // var buffer=geometryEngine.geodesicBuffer(geometry,150,"kilometers",false);
+            var buffer = geometryEngine.buffer(geometry, 150, "meters", false);
+            var polySym = {
+                type: "simple-fill", // autocasts as new SimpleFillSymbol()
+                color: [140, 140, 222, 0.3],
+                outline: {
+                    color: [0, 0, 0, 0.5],
+                    width: 2
+                }
+            };
+            view.graphics.add((new Graphic({
+                geometry: buffer,
+                symbol: polySym
+            })));
+        }
+
+        //点击视窗进行碰撞检测，检测点击的目标graphic
+        var ss=view.on("click", function (evt) {
+            view.hitTest(evt).then(function (response) {
+                var result = response.result[0];
+                console.log(result);
+                if (x == 0){
+                    if (result && result.graphic) {
+                        console.log(result);
+                        var graphic = result.graphic;
+                        //自定义高亮
+                        //这里的几何图形是面状，配置graphic的symbol为fillSymbol
+                        graphic.symbol = {
+                            type: "simple-fill",
+                            color: [51, 51, 204, 0.35],
+                            outline: {
+                                color: "#00f2f1",
+                                width: "0.5px"
+                            }
+                        };
+
+                        gralayer.removeAll();
+                        gralayer.add(graphic);
+                    }
+                }
+
+            })
+        });
+
+        //关键字查询
+        var qTask = new QueryTask({
+            url: serverUrl
+        });
+        //查询参数
+        var params = new Query({
+            returnGeometry: true,
+            outFields: ["*"]
+        });
+
+        // 执行查询
+        function doQuery() {
+
+            var value = document.getElementById("inputTxt").value;
+
+            gralayer.removeAll();
+            params.text= value;
+
+            qTask.execute(params)
+                .then(getResults)
+                .catch(promiseRejected);
+        }
+
+        // 得到结果
+        function getResults(response) {
+
+            var peakResults = arrayUtils.map(response.features, function(
+                feature) {
+
+                console.log(feature);
+
+                // Sets the symbol of each resulting feature to a cone with a
+                feature.symbol = {
+                    type: "simple-fill",
+                    color: "rgba(0,242,241,0.5)",
+                    outline: {
+                        color: "#00f2f1",
+                        width: "0.5px"
+                    }
+                };
+
+                feature.popupTemplate = popupTemplate;
+                return feature;
+            });
+
+            //gralayer.removeAll();
+            gralayer.addMany(peakResults);
+
+            var len=peakResults.length;
+
+            if (len>0){
+
+                view.goTo(peakResults).then(function() {
+                    view.popup.open({
+                        features: peakResults,
+                        featureMenuOpen: true,
+                        updateLocationEnabled: true
+                    });
+                });
+            }
+
+            dom.byId("printResults").innerHTML = "找到"+peakResults.length +
+                "个结果 !";
+        }
+
+        // 搜索失败
+        function promiseRejected(error) {
+            console.error("Promise rejected: ", error.message);
+        }
+
+        //点击查询按钮
+        document.getElementById("doBtn").addEventListener("click", doQuery);
+
+        $("#search-button").click(function (){
+            var flag = $("#optionsDiv").is(":hidden");
+            if(flag){
+                $("#optionsDiv").show();
+            }else{
+                $("#optionsDiv").hide();
+                gralayer.removeAll();
+            }
+        });
+
+
+    })
+</script>
+</body>
+</html>

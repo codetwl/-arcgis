@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>Title</title>
+ <link rel="stylesheet" href="https://js.arcgis.com/4.16/esri/themes/light/main.css" />
+ <script src="https://js.arcgis.com/4.16/"></script>
+ <style>
+  html,body{
+   height: 100%;
+   margin: 0;
+  }
+  #view-div{
+   position: absolute;
+   height: 100%;
+   width: 100%;
+   left: 0;
+   top: 0;
+  }
+ </style>
+</head>
+<body>
+<div id="view-div"></div>
+
+</body>
+<script>
+ window.onload = function () {
+  require(["esri/Map", "esri/views/SceneView"], function (Map, SceneView) {
+   let map = new Map({
+    basemap:'osm',
+    ground: "world-elevation"
+   })
+   let view = new SceneView({
+    map:map,
+    container:'view-div',
+    // scale: 50000000,
+    scale:8,
+    center:[116.444513,39.945255]
+   })
+  })
+ }
+</script>
+</html>

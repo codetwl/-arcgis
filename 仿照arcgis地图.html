@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>Title</title>
+  <link type="text/css" rel="stylesheet" href="https://js.arcgis.com/4.11/esri/css/main.css" />
+ <script type="text/javascript" src="http://js.arcgis.com/4.11/init.js"></script>
+ <script src="https://js.arcgis.com/4.11/"></script>
+ <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+ <style>
+  html,body{
+   height: 100%;
+   width: 100%;
+  }
+  body{
+   margin: 0;
+  }
+  #map-view{
+   position: absolute;
+   width: 100%;
+   height: 100%;
+   top: 0;
+   left: 0;
+  }
+ </style>
+</head>
+<body>
+<div id="map-view">
+
+</div>
+<script>
+ require(
+ [ "esri/Map",
+  'esri/views/MapView',
+  "esri/layers/TileLayer",
+  "dojo/_base/array",
+  "dojo/dom",
+  "dojo/domReady!"], function (Map,MapView,TileLayer ) {
+   let map = new Map()
+
+   let titleLayer = new TileLayer({
+    url:"http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer",
+    opacity:1
+   })
+   map.layers.on('change', function () {
+    console.log('图层变化')
+   })
+   map.add(titleLayer)
+   let mapView = new MapView({
+      map:map,
+      zoom:2,
+      container: 'map-view',
+    center: [-118.71511,34.09042],
+   })
+
+  })
+
+</script>
+</body>
+</html>
