@@ -3,8 +3,8 @@
 <head>
  <meta charset="UTF-8">
  <title>Title</title>
- <link rel="stylesheet" href="https://js.arcgis.com/4.16/esri/themes/light/main.css" />
- <script src="https://js.arcgis.com/4.16/"></script>
+  <link type="text/css" rel="stylesheet" href="http://localhost/4.16/esri/css/main.css" />
+ <script type="text/javascript" src="http://localhost/4.16/init.js"></script>
  <style>
   html,body{
    height: 100%;
@@ -54,6 +54,7 @@
      geometry:point,
     })
     mapView.graphics.add(graphic)
+
     // let sketch = new Sketch({
     //  layer: graphicsLayer,
     //  view: mapView

@@ -114,7 +114,8 @@
 
         map.add(gralayer);
 
-        var fieldInfos = [{
+        var fieldInfos = [
+          {
             fieldName: "SHAPE_Area",
             label: "SHAPE_Area",
             format: {
@@ -135,7 +136,8 @@
                 places: 0,
                 digitSeperator: true
             }
-        }];
+        }
+        ];
 
         var featurelayer = new FeatureLayer({
             url: "http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer/0",
@@ -153,16 +155,7 @@
                 }, {
                     type: "fields",
                     fieldInfos: fieldInfos
-                }],
-                fieldInfos: [{
-                    fieldName: "OBJECTID",
-                    label: "OBJECTID",
-                    format: {
-                        digitSeparator: true,
-                        places: 0
-                    }
                 }]
-
             }
         });
 //            图层的不透明度。
@@ -624,7 +617,9 @@
 
         //点击视窗进行碰撞检测，检测点击的目标graphic
         var ss=view.on("click", function (evt) {
+            console.log('evt',evt)
             view.hitTest(evt).then(function (response) {
+                console.log('response',response)
                 var result = response.result[0];
                 console.log(result);
                 if (x == 0){
@@ -637,7 +632,7 @@
                             type: "simple-fill",
                             color: [51, 51, 204, 0.35],
                             outline: {
-                                color: "#00f2f1",
+                                color: "#f00",
                                 width: "0.5px"
                             }
                         };
@@ -662,7 +657,7 @@
 
         // 执行查询
         function doQuery() {
-
+            console.log('执行查询')
             var value = document.getElementById("inputTxt").value;
 
             gralayer.removeAll();
@@ -675,7 +670,7 @@
 
         // 得到结果
         function getResults(response) {
-
+            console.log('得到结果')
             var peakResults = arrayUtils.map(response.features, function(
                 feature) {
 

@@ -33,9 +33,10 @@
  [ "esri/Map",
   'esri/views/MapView',
   "esri/layers/TileLayer",
+  "esri/layers/FeatureLayer",
   "dojo/_base/array",
   "dojo/dom",
-  "dojo/domReady!"], function (Map,MapView,TileLayer ) {
+  "dojo/domReady!"], function (Map,MapView,TileLayer,FeatureLayer ) {
    let map = new Map()
 
    let titleLayer = new TileLayer({
@@ -51,6 +52,12 @@
       zoom:2,
       container: 'map-view',
     center: [-118.71511,34.09042],
+   })
+   let featureLayer = new FeatureLayer({
+
+   })
+   mapView.on('click', function (event) {
+
    })
 
   })
