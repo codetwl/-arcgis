@@ -3,8 +3,8 @@
 <head>
  <meta charset="UTF-8">
  <title>Title</title>
-  <link type="text/css" rel="stylesheet" href="http://localhost/4.16/esri/css/main.css" />
- <script type="text/javascript" src="http://localhost/4.16/init.js"></script>
+ <link rel="stylesheet" href="https://js.arcgis.com/4.16/esri/themes/light/main.css" />
+ <script src="https://js.arcgis.com/4.16/"></script>
  <style>
   html,body{
    height: 100%;
@@ -24,15 +24,14 @@
 </body>
 <script>
  window.onload = function () {
-   require(['esri/Map',"esri/views/MapView","esri/widgets/Sketch",'esri/layers/GraphicsLayer','esri/Graphic'], function (Map, MapView, Sketch, GraphicsLayer, Graphic) {
+   require(['esri/Map',"esri/views/MapView","esri/widgets/Sketch",'esri/layers/GraphicsLayer','esri/layers/TileLayer','esri/Graphic'], function (Map, MapView, Sketch, GraphicsLayer,TileLayer, Graphic) {
     let map = new Map({
-     basemap:'osm'
+     // basemap:'osm'
     })
     let mapView = new MapView({
      container:"map-view",
      map:map,
      zoom:8,
-     center:[121.399749,31.246926]
     })
     let pointSymbol = {
      type:'simple-marker',
@@ -44,16 +43,24 @@
     }
     let point = {
      type: 'point',
-     longitude: 121.399749,
-     latitude: 31.246926
+     longitude: 0,
+     latitude: 0
     }
-    // let graphicsLayer = new GraphicsLayer()
-    // map.add(graphicsLayer)
+    let tileLayer01=new TileLayer({
+     url:"http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer",
+     opacity:1
+    });
+
+    let graphicsLayer = new GraphicsLayer()
+
+    map.add(tileLayer01)
+    map.add(graphicsLayer)
     let graphic= new Graphic({
      symbol:pointSymbol,
      geometry:point,
     })
-    mapView.graphics.add(graphic)
+    graphicsLayer.add(graphic)
+    // mapView.graphics.add(graphic)
 
     // let sketch = new Sketch({
     //  layer: graphicsLayer,

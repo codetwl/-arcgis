@@ -4,6 +4,7 @@
  <meta charset="UTF-8">
  <title>地图查询</title>
  <link rel="stylesheet" href="https://js.arcgis.com/4.16/esri/themes/light/main.css" />
+ <script type="text/javascript" src="http://js.arcgis.com/4.11/init.js"></script>
  <script src="https://js.arcgis.com/4.16/"></script>
  <style>
   html,body{
@@ -21,25 +22,107 @@
 </head>
 <body>
  <div id="map-view">
+  <div id="search">
+   <input type="text" >
+   <button>查询</button>
+  </div>
 
  </div>
 </body>
 <script>
  window.onload = function () {
-   require(['esri/Map','esri/views/MapView',"esri/tasks/QueryTask", "esri/tasks/support/Query"], function (Map, MapView, QueryTask, Query) {
-     let citiesLayerUrl = " ... ";
+   require(['esri/Map','esri/views/MapView',"esri/layers/TileLayer","esri/layers/FeatureLayer","esri/layers/GraphicsLayer","esri/Graphic","esri/tasks/QueryTask", "esri/tasks/support/Query",
+    "dojo/_base/array",
+    "dojo/dom",
+    "dojo/domReady!",], function (Map, MapView,TileLayer,FeatureLayer, GraphicsLayer,Graphic, QueryTask, Query,  arrayUtils, dom) {
+     let serverUrl = "http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer/0";
      let map = new Map()
      let mapView = new MapView({
       map:map,
-      container:"map-view"
+      container:"map-view",
+      zoom:4
      })
+     let tileLayer = new TileLayer({
+      url:"http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer",
+      opacity:1
+     })
+    let template = {
+     title:'区域名称:{名称}',
+     content: [{
+      type: "text",
+      text:  "<br><b>ID:</b> {OBJECTID}" +
+       "<br><b>区域面积:</b> {SHAPE_Area}"+
+       "<br><b>区域周长:</b> {SHAPE_Length}"
+     }],
+
+
+    }
+    let featureLayer = new FeatureLayer({
+     url: "http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer/0",
+     opacity:0,
+     popupTemplate:template
+    })
      let quaryTask= new QueryTask({
-      url:citiesLayerUrl
+      url:serverUrl
      })
-    let query = new Query()
-    query.returnGeometry = true
-    query.outFields = ["*"];
-    query.where = "POP &gt; 1000000";
+    let graphicsLayer = new GraphicsLayer()
+    map.add(tileLayer)
+    map.add(featureLayer)
+    map.add(graphicsLayer)
+    let query = new Query({
+     returnGeometry : true,
+     outFields: ["*"]
+    })
+
+    mapView.ui.add(document.querySelector('#search'),'top-right')
+    document.querySelector('#search button').addEventListener('click', function () {
+
+      query.text = document.querySelector('#search input').value
+      quaryTask.execute(query).then(res => {
+
+       let allRes = res.features.map(feature => {
+        feature.symbol = {
+         type:'simple-fill',
+
+         outline: {
+          color: "#00f2f1",
+          width: "0.5px"
+         }
+        }
+        feature.popupTemplate = template
+        return feature
+       })
+       let extent= allRes[0].geometry.extent
+       extent = extent.expand(2)
+       mapView.extent = extent
+       let {x ,y} = allRes[0].geometry.extent.center
+       console.log(x,y)
+       let graphic = new Graphic({
+        geometry:{
+         type:'point',
+         x:x,
+         y:y,
+         z:0
+        },
+        symbol:{type:'simple-marker',color:'yellow',size:20,outline: {
+         width: '4px',
+         color:'#0f0'
+         }},
+
+       })
+       mapView.goTo(graphic).then(function () {
+        mapView.popup.open({
+         features: allRes,
+         featureMenuOpen: true,
+         updateLocationEnabled: true
+        });
+       })
+
+       graphicsLayer.addMany(allRes)
+       graphicsLayer.add(graphic)
+       // graphicsLayer.graphics.push(graphic)
+      })
+    })
    })
  }
 </script>
