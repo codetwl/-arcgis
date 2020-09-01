@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>Title</title>
+ <link type="text/css" rel="stylesheet" href="http://localhost/4.11/esri/css/main.css" />
+ <script type="text/javascript" src="http://localhost/4.16/init.js"></script>
+ <style>
+  html,body{
+   height: 100%;
+   margin: 0;
+  }
+  #view {
+   position: absolute;
+   height: 100%;
+   width: 100%;
+   top: 0;
+   left: 0;
+  }
+ </style>
+</head>
+<body>
+ <div id="view">
+
+ </div>
+</body>
+<script>
+ window.onload = function () {
+   require(['esri/Map',
+    'esri/views/MapView',
+    "esri/layers/GraphicsLayer",
+    "esri/Graphic"], function (Map, MapView, GraphicsLayer, Graphic) {
+
+     let map = new Map({
+      basemap:'osm'
+     })
+     let mapView = new MapView({
+      map:map,
+      container:'view',
+      zoom:8,
+      center:[121.474488,31.226177]
+     })
+    let symbol = {
+      type: 'simple-marker',
+      color:'#fff',
+      size:4,
+      outline:{
+        width:8,
+        color: 'orange'
+      }
+    }
+    let geometry= {
+     type:'point',
+     longitude: 121.474488,
+     latitude: 31.226177
+    }
+    let polylineAtt = {
+     City: "北京",
+     Longitude: 121.474488,
+     Latitude:31.226177
+    };
+     let graphicLayer = new GraphicsLayer()
+     let graphic = new Graphic({
+      symbol:symbol,
+      geometry:geometry,
+      attributes:polylineAtt,
+      popupTemplate:{
+       title: "城市和经纬度",
+       content: [{
+        // Pass in the fields to display
+        type: "fields",
+        fieldInfos: [{
+         fieldName: "City",
+         label: "城市"
+        }, {
+         fieldName: "Longitude",
+         label: "经度"
+        },{
+         fieldName: "Latitude",
+         label: "纬度"
+        }]
+       }]
+      }
+     })
+    graphicLayer.graphics.add(graphic)
+    map.add(graphicLayer)
+    //监听view的属性变化
+    let unwatch = mapView.watch('zoom', function (newVal, oldVal) {
+     console.log('哈哈', newVal)
+    })
+    //移除监听
+    unwatch()
+    // console.log(graphic.getObjectId())
+   })
+ }
+</script>
+</html>

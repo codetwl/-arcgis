@@ -1,0 +1,113 @@
+<html>
+<head>
+ <meta charset="utf-8" />
+ <meta
+   name="viewport"
+   content="initial-scale=1, maximum-scale=1,user-scalable=no"
+ />
+ <!--
+ArcGIS API for JavaScript, https://js.arcgis.com
+For more information about the query-attachments sample, read the original sample description at developers.arcgis.com.
+https://developers.arcgis.com/javascript/latest/sample-code/query-attachments/index.html
+-->
+ <title>Query Attachments | Sample | ArcGIS API for JavaScript 4.16</title>
+
+ <style>
+  html,
+  body {
+   height: 100%;
+   width: 100%;
+   margin: 0;
+   padding: 0;
+  }
+
+  #viewDiv {
+   height: 100%;
+   width: 100%;
+  }
+
+ </style>
+
+ <link
+   rel="stylesheet"
+   href="https://js.arcgis.com/4.16/esri/themes/dark/main.css"
+ />
+ <script src="https://js.arcgis.com/4.16/"></script>
+
+
+</head>
+
+<body>
+<div id="viewDiv"></div>
+</body>
+<script>
+ require([
+  "esri/Map",
+  "esri/views/MapView",
+  "esri/layers/FeatureLayer"
+ ], function (Map, MapView, FeatureLayer) {
+  // get layer from online portal
+  const layer = new FeatureLayer({
+   portalItem: {
+    id: "d532e04739cd45e4964291a2a8875ef6"
+   },
+   outFields: ["*"]
+  });
+  // setup the map
+  const map = new Map({
+   basemap: "osm",
+   layers: [layer]
+  });
+  const view = new MapView({
+   container: "viewDiv",
+   map: map,
+   center: [-118.41, 34.08],
+   zoom: 13,
+   popup: {
+    autoOpenEnabled: false
+   }
+  });
+  let highlight;
+
+  view.on("click", function (event) {
+   queryFeatures(event);
+  });
+
+  function queryFeatures(screenPoint) {
+   console.log('screenPoint',screenPoint)
+   const point = view.toMap(screenPoint);
+   console.log('point',point)
+   //within 8 Query the for the object ids 00m from where the user clicked
+   layer
+    .queryObjectIds({
+     geometry: point,
+     spatialRelationship: "intersects",
+     distance: 300,
+     units: "meters",
+     returnGeometry: false,
+     outFields: ["*"]
+    })
+    .then(function (objectIds) {
+     if (!objectIds.length) {
+      return;
+     }
+     // Highlight the query-area on the map
+     view.whenLayerView(layer).then(function (layerView) {
+      if (highlight) {
+       highlight.remove();
+      }
+      highlight = layerView.highlight(objectIds);
+     });
+     // Query the for the attachments from the object ids found
+
+    })
+    .then(function (attachmentsByFeatureId) {
+
+    })
+    .catch(function (error) {
+    });
+  }
+
+ });
+</script>
+</html>

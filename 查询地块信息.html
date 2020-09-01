@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>地块信息查询</title>
+  <link type="text/css" rel="stylesheet" href="http://localhost/4.16/esri/css/main.css" />
+ <script type="text/javascript" src="http://localhost/4.16/init.js"></script>
+ <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+ <style>
+  html,body{
+   height: 100%;
+   width: 100%;
+  }
+  body{
+   margin: 0;
+  }
+  #map-view{
+   position: absolute;
+   width: 100%;
+   height: 100%;
+   top: 0;
+   left: 0;
+  }
+ </style>
+</head>
+<body>
+<div id="map-view">
+ <div id="search">
+  <input type="text">
+  <div><button>查询</button></div>
+ </div>
+</div>
+
+<script>
+ require(
+  [ "esri/Map",
+   "esri/Graphic",
+   'esri/views/MapView',
+   "esri/layers/FeatureLayer",
+   "esri/layers/TileLayer",
+   "esri/layers/GraphicsLayer",
+   "esri/tasks/QueryTask",
+   "esri/tasks/support/Query",
+   "dojo/_base/array",
+   "dojo/dom",
+   "dojo/domReady!"], function (Map,Graphic,MapView,FeatureLayer,TileLayer, GraphicsLayer,QueryTask, Query ) {
+   let map = new Map()
+
+   let titleLayer = new TileLayer({
+    url:"http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer",
+    opacity:1
+   })
+   let fieldInfos = [
+    {
+     fieldName: "SHAPE_Area",
+     label: "SHAPE_Area",
+     format: {
+      places: 0,
+      digitSeperator: true
+     }
+    }, {
+     fieldName: "OBJECTID",
+     label: "OBJECTID",
+     format: {
+      places: 0,
+      digitSeperator: true
+     }
+    }, {
+     fieldName: "SHAPE_Length",
+     label: "SHAPE_Length",
+     format: {
+      places: 0,
+      digitSeperator: true
+     }
+    }
+   ];
+
+   let featureLayer = new FeatureLayer({
+    url: "http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer/0",
+    popupTemplate:{
+     title: "区域名称： {名称}",
+     content: [{
+      type: "text",
+      text:  "<table><tr><td>ID:</td><td>{OBJECTID}</td></tr>" +
+       "<tr><td>区域面积:</td><td>{SHAPE_Area}</td></tr>"+
+       "<tr><td>区域周长:</td><td> {SHAPE_Length}</td></tr></table>"
+     }, {
+      type: "fields",
+      fieldInfos: fieldInfos
+     }],
+    },
+    opacity: 0
+   })
+   map.layers.on('change', function () {
+    console.log('图层变化')
+   })
+   var gralayer = new GraphicsLayer();//绘图、查询高亮显示图层
+   let mapView = new MapView({
+    map:map,
+    zoom:2,
+    container: 'map-view',
+    center: [-118.71511,34.09042],
+   })
+   let graphic = new Graphic({
+    geometry:{type:'point',longitude:121.282322,latitude:31.406094},
+    symbol:{type:'simple-marker',
+     color:[226, 119, 40],
+     size: 8,
+     outline: {
+      width:4,
+      color:'red'
+     }
+    }
+   })
+   gralayer.add(graphic)
+   // console.log('graphic',graphic)
+   // mapView.graphics.add(graphic);
+   mapView.ui.add(document.getElementById('search'),'top-right')
+   map.add(titleLayer)
+   map.add(featureLayer);
+   map.add(gralayer);
+   let highlight
+   let  serverUrl = "http://139.196.105.31:6080/ArcGIS/rest/services/jcsj/MapServer/0";
+   let queryTask = new QueryTask({
+    url: serverUrl
+   })
+
+   //查询参数
+   var query = new Query({
+    returnGeometry: true,
+    outFields: ["*"]
+   });
+
+   mapView.on('click', function (event) {
+    console.log(event)
+    na(event)
+   })
+
+   let searchBtn = document.querySelector('#search button')
+   searchBtn.addEventListener('click', function (event) {
+
+    duQuery()
+
+   })
+   let popupTemplate = { // autocasts as new PopupTemplate()
+    title: "{名称}",
+    fieldInfos: [{
+     fieldName: "SHAPE_Area",
+     label: "SHAPE_Area",
+     format: {
+      places: 0,
+      digitSeperator: true
+     }
+    }, {
+     fieldName: "OBJECTID",
+     label: "OBJECTID",
+     format: {
+      places: 0,
+      digitSeperator: true
+     }
+    }, {
+     fieldName: "SHAPE_Length",
+     label: "SHAPE_Length",
+     format: {
+      places: 0,
+      digitSeperator: true
+     }
+    }],
+    // content:
+    //     "<br><b>OBJECTID:</b> {OBJECTID}" +
+    //     "<br><b>SHAPE_Area:</b> {SHAPE_Area}"+
+    //     "<br><b>SHAPE_Length:</b> {SHAPE_Length}"
+   };
+   function duQuery() {
+    let value = document.querySelector('#search input').value
+    gralayer.removeAll();
+    query.text = value
+    queryTask.execute(query).then((res)=>{
+     let peakResults = res.features.map(feature => {
+      let {x, y} =  feature.geometry.extent.center
+
+      // Sets the symbol of each resulting feature to a cone with a
+      feature.symbol = {
+       type: "simple-fill",
+       color: "rgba(0,234,0,0.5)",
+       outline: {
+        color: "#f00",
+        width: "0.5px"
+       }
+      };
+      feature.popupTemplate = popupTemplate;
+      return feature
+     })
+     let {x, y} =  peakResults[0].geometry.extent.center
+     console.log(x, y)
+     let jingdu = mapView.toMap(x)
+     let weidu = mapView.toMap(y)
+
+     gralayer.addMany(peakResults);
+    })
+   }
+   function na(screenPoint) {
+
+   }
+
+  })
+
+</script>
+</body>
+</html>
